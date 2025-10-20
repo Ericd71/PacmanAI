@@ -133,13 +133,71 @@ def depth_first_search(problem):
     print("Start's successors:", problem.get_successors(problem.get_start_state()))
     """
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    #Creating stack (DFS uses stack)
+    stack = util.Stack()
+    #Getting problem's initial state
+    frontier = problem.get_start_state()
+    #Push into stack initial state, initial cost and the empty list of the different actions
+    stack.push([frontier, 0, []])
+    #List to store the nodes we expand to
+    expandedNodes = []
 
+    while stack:
+        #Pop the top items out of the stack to see the attributes of the next move
+        [n, cost, action] = stack.pop()
+
+        #Checking if node n is the goal state
+        if problem.is_goal_state(n):
+            return action
+        
+        #Check if n is not in expandedNodes
+        if n not in expandedNodes:
+            expandedNodes.append(n)
+            #Getting node successors
+            successors = problem.get_successors(n)
+
+            #Iterating through all successors with the corresponding attribute
+            for n_successor, action_sucessor, cost_sucessor in successors:
+                if n_successor not in expandedNodes:
+                    #Updating the cost
+                    new_cost = cost + cost_sucessor
+                    new_action = action + [action_sucessor]
+                    #Push unvisited successor onto stack
+                    stack.push([n_successor, new_cost, new_action]) 
+    
+    print("Start:", problem.get_start_state())
+    print("Is the start a goal?", problem.is_goal_state(problem.get_start_state()))
+    print("Start's successors:", problem.get_successors(problem.get_start_state()))
+
+    util.raise_not_defined()
 
 
 def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
+    #Instead of stack like in DFS, we use queue for BFS
+    Queue = util.Queue()
+    frontier = problem.get_start_state()
+    Queue.push([frontier, 0, []]) 
+
+    expandedNodes = []
+    #Rest of the code the same as DFS
+    while Queue:
+        [n, cost, action] = Queue.pop()
+
+        if problem.is_goal_state(n):
+            return action
+
+        if n not in expandedNodes:
+            expandedNodes.append(n)
+            successors = problem.get_successors(n)
+
+            for n_successor, action_sucessor, cost_sucessor in successors:
+                if n_successor not in expandedNodes:
+                    new_cost = cost + cost_sucessor
+                    new_action = action + [action_sucessor]
+                    Queue.push([n_successor, new_cost, new_action])
+
     util.raise_not_defined()
 
 def uniform_cost_search(problem):
