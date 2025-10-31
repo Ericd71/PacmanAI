@@ -295,12 +295,12 @@ class CornersProblem(search.SearchProblem):
         # in initializing the problem
         "*** YOUR CODE HERE ***"
         # Corner index map and visited-at-start
-        self.corner_index = {(1,1):0, (1,top):1, (right,1):2, (right,top):3} #DICCIONARIO DE ESQUINAS
-        visited = [False]*len(self.corners) #LISTA DE ESQUINAS VISITADAS
+        self.corner_index = {(1,1):0, (1,top):1, (right,1):2, (right,top):3} #Corners dictionary
+        visited = [False]*len(self.corners) #List of visited corners
         # CHECK START_POS == CORNER_POS
         if self.startingPosition in self.corner_index: 
             visited[self.corner_index[self.startingPosition]] = True
-        self._startVisited = tuple(visited) #TUPLA PARA USAR ESTADO INCIAL
+        self._startVisited = tuple(visited) #TUPLE to use initial STATE
 
     def get_start_state(self):
         """
@@ -308,7 +308,7 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        # Returna la posicion inicial y las esquinas visitadas al inicio para el ESTADO INICIAL
+        # Return starting position and corners visited at the beginning for the initial state
         return(self.startingPosition, self._startVisited)
 
     def is_goal_state(self, state):
@@ -317,7 +317,7 @@ class CornersProblem(search.SearchProblem):
         """
         "*** YOUR CODE HERE ***"
         #state = (position, visited)
-        #all() verifica que visted sea entero TRUE 
+        #all() verifies that all states are true 
         return all(state[1])  
 
     def get_successors(self, state):
@@ -398,45 +398,46 @@ def corners_heuristic(state, problem):
     "*** YOUR CODE HERE ***"
     position, visited = state
 
-    # calcula la distancia Manhattan entre dos puntos
+    # Manhattan distancde between two points
     def manhattan_distance(p1, p2):
         return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-    # calcula el coste del Árbol Mínimo de Expansión (MST) entre un conjunto de puntos
+    
+    # Calculates cost of Minimum Spanning Tree (MST) between a set of points
     def mst_cost(points):
-        if not points: return 0          # Si no hay puntos, no hay coste.
-        unvisited = set(points)          # Conjunto de esquinas por conectar.
-        current = unvisited.pop()        # Empezamos con una esquina cualquiera.
-        visited_set = {current}          # Esquinas ya conectadas al árbol.
-        cost = 0                         # Coste total acumulado del MST.
+        if not points: return 0          # If there's no points, there's no cost
+        unvisited = set(points)          # Sets of points that haven't been visited
+        current = unvisited.pop()        # We start at any corner
+        visited_set = {current}          # Corners already connected to the graph/visited!
+        cost = 0                         # Total cost accumulated for the MST
 
-        # Mientras haya esquinas sin conectar:
+        # While there's unvisited nodes
         while unvisited:
-            best_edge = None             # Guarda el siguiente punto más barato.
-            best_w = 1 << 30             # Peso mínimo encontrado (un número enorme).
+            best_edge = None             # Save the next least cost edge
+            best_w = 1 << 30             # Minimal cost found (a very big number)
 
-            # Busca la arista más corta entre cualquier punto conectado y uno no conectado.
+            # Search for the shortest edge between any node connected and one that isn't
             for u in visited_set:
                 for v in unvisited:
-                    w = manhattan_distance(u, v)       # Distancia Manhattan entre u y v.
+                    w = manhattan_distance(u, v)       # Manhattan distance between u and v
                     if w < best_w:
-                        best_w = w       # Actualiza el menor peso encontrado.
-                        best_edge = v     # Guarda el vértice destino más barato.
+                        best_w = w       # Update the least cost found
+                        best_edge = v    # Save best edge (least cost)
 
-            # Añade esa conexión al MST.
+            # Add that connection to MST
             cost += best_w
             visited_set.add(best_edge)
             unvisited.remove(best_edge)
 
-        return cost                      # Devuelve el coste total mínimo de conectar todas las esquinas.
+        return cost         # Returns the total minimum cost of connecting all nodes
 
-    #lista de las esquinas que Pacman aún no ha visitado.
+    # List of corners that Pacman hasn't visited yet
     remaining_corners = [corners[i] for i in range(len(corners)) if not visited[i]]
     if not remaining_corners:
         return 0
     
-    #distancia (Manhattan) hasta la esquina más cercana entre las que quedan por visitar.
+    # Manhattan distance until the nearest corner in between the ones that are still remaining
     to_nearest = min(manhattan_distance(position, corner) for corner in remaining_corners)
-    # Heurística final = distancia a la esquina más cercana + coste del MST para conectar las esquinas restantes entre sí.
+    # Final heuristic = distance to the nearest corner + cost of MST to connect the remaining corners one another
     return to_nearest + mst_cost(remaining_corners)
 
 class AStarCornersAgent(SearchAgent):
