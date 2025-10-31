@@ -169,7 +169,7 @@ def depth_first_search(problem):
     print("Is the start a goal?", problem.is_goal_state(problem.get_start_state()))
     print("Start's successors:", problem.get_successors(problem.get_start_state()))
 
-    util.raise_not_defined()
+    return []
 
 
 def breadth_first_search(problem):
@@ -198,12 +198,38 @@ def breadth_first_search(problem):
                     new_action = action + [action_sucessor]
                     Queue.push([n_successor, new_cost, new_action])
 
-    util.raise_not_defined()
+    return []
 
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    
+    from util import PriorityQueue
+    start = problem.get_start_state()
+    frontier = PriorityQueue()
+    frontier.push((start, []), 0)
+    # Mejor coste conocido para cada estado
+    best_g = {start: 0}
+
+    while not (frontier.is_empty() if hasattr(frontier, "is_empty") else frontier.is_empty()):
+        state, actions = frontier.pop()
+        g = problem.get_cost_of_actions(actions)
+
+        if problem.is_goal_state(state):
+            return actions
+
+        # Si aparece un camino más caro que uno ya conocido, saltamos
+        if best_g.get(state, float("inf")) < g:
+            continue
+
+        for succ, action, step_cost in problem.get_successors(state):
+            new_actions = actions + [action]
+            new_g = g + step_cost
+            if new_g < best_g.get(succ, float("inf")):
+                best_g[succ] = new_g
+                frontier.push((succ, new_actions), new_g)
+
+    return []
 
 def null_heuristic(state, problem=None):
     """
@@ -215,7 +241,33 @@ def null_heuristic(state, problem=None):
 def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    from util import PriorityQueue
+
+    start = problem.get_start_state()
+    frontier = PriorityQueue()
+    frontier.push((start, []), heuristic(start, problem))
+    best_g = {start: 0}
+
+    while not (frontier.is_empty() if hasattr(frontier, "is_empty") else frontier.is_empty()):
+        state, actions = frontier.pop()
+        g = problem.get_cost_of_actions(actions)
+
+        if problem.is_goal_state(state):
+            return actions
+
+        # Si ya tenemos un g mejor para este estado, saltamos
+        if best_g.get(state, float("inf")) < g:
+            continue
+
+        for succ, action, step_cost in problem.get_successors(state):
+            new_actions = actions + [action]
+            new_g = g + step_cost
+            if new_g < best_g.get(succ, float("inf")):
+                best_g[succ] = new_g
+                f = new_g + heuristic(succ, problem)
+                frontier.push((succ, new_actions), f)
+
+    return []
 
 # Abbreviations
 bfs = breadth_first_search

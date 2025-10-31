@@ -282,10 +282,10 @@ class CornersProblem(search.SearchProblem):
         """
         Stores the walls, pacman's starting position and corners.
         """
-        self.walls = starting_game_state.get_walls()
-        self.startingPosition = starting_game_state.get_pacman_position()
-        top, right = self.walls.height-2, self.walls.width-2
-        self.corners = ((1,1), (1,top), (right, 1), (right, top))
+        self.walls = starting_game_state.get_walls() #TUPLE WALLS
+        self.startingPosition = starting_game_state.get_pacman_position() #PACMAN START POS
+        top, right = self.walls.height-2, self.walls.width-2 #LIMITES
+        self.corners = ((1,1), (1,top), (right, 1), (right, top)) #CORNERS DEFAULT
         if corners is not None: self.corners = corners
         for corner in self.corners:
             if not starting_game_state.has_food(*corner):
@@ -294,6 +294,13 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
+        # Corner index map and visited-at-start
+        self.corner_index = {(1,1):0, (1,top):1, (right,1):2, (right,top):3} #DICCIONARIO DE ESQUINAS
+        visited = [False]*len(self.corners) #LISTA DE ESQUINAS VISITADAS
+        # CHECK START_POS == CORNER_POS
+        if self.startingPosition in self.corner_index: 
+            visited[self.corner_index[self.startingPosition]] = True
+        self._startVisited = tuple(visited) #TUPLA PARA USAR ESTADO INCIAL
 
     def get_start_state(self):
         """
@@ -301,14 +308,17 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        # Returna la posicion inicial y las esquinas visitadas al inicio para el ESTADO INICIAL
+        return(self.startingPosition, self._startVisited)
 
     def is_goal_state(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        #state = (position, visited)
+        #all() verifica que visted sea entero TRUE 
+        return all(state[1])  
 
     def get_successors(self, state):
         """
@@ -320,18 +330,24 @@ class CornersProblem(search.SearchProblem):
             state, 'action' is the action required to get there, and 'step_cost'
             is the incremental cost of expanding to that successor
         """
+        "*** YOUR CODE HERE ***"
         successors = []
+        position, visited = state
+        x, y = position
+
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   current_position = state[0]
-            #   x,y = current_position
-            #   dx, dy = Actions.direction_to_vector(action)
-            #   next_x, next_y = int(x + dx), int(y + dy)
-            #   hits_wall = self.walls[next_x][next_y]
-
-            "*** YOUR CODE HERE ***"
-
+            dx, dy = Actions.direction_to_vector(action)
+            next_x, next_y = int(x + dx), int(y + dy)
+            hits_wall = self.walls[next_x][next_y]
+            if not hits_wall:
+                next_position = (next_x, next_y)
+                # Update visited corners if next_position is a corner
+                visited_list = list(visited)
+                if next_position in self.corner_index:
+                    visited_list[self.corner_index[next_position]] = True
+                next_visited = tuple(visited_list)
+                successors.append( ( (next_position, next_visited), action, 1) )
+    
         self._expanded += 1 # DO NOT CHANGE
         return successors
 
@@ -380,7 +396,48 @@ def corners_heuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position, visited = state
+
+    # calcula la distancia Manhattan entre dos puntos
+    def manhattan_distance(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+    # calcula el coste del Árbol Mínimo de Expansión (MST) entre un conjunto de puntos
+    def mst_cost(points):
+        if not points: return 0          # Si no hay puntos, no hay coste.
+        unvisited = set(points)          # Conjunto de esquinas por conectar.
+        current = unvisited.pop()        # Empezamos con una esquina cualquiera.
+        visited_set = {current}          # Esquinas ya conectadas al árbol.
+        cost = 0                         # Coste total acumulado del MST.
+
+        # Mientras haya esquinas sin conectar:
+        while unvisited:
+            best_edge = None             # Guarda el siguiente punto más barato.
+            best_w = 1 << 30             # Peso mínimo encontrado (un número enorme).
+
+            # Busca la arista más corta entre cualquier punto conectado y uno no conectado.
+            for u in visited_set:
+                for v in unvisited:
+                    w = manhattan_distance(u, v)       # Distancia Manhattan entre u y v.
+                    if w < best_w:
+                        best_w = w       # Actualiza el menor peso encontrado.
+                        best_edge = v     # Guarda el vértice destino más barato.
+
+            # Añade esa conexión al MST.
+            cost += best_w
+            visited_set.add(best_edge)
+            unvisited.remove(best_edge)
+
+        return cost                      # Devuelve el coste total mínimo de conectar todas las esquinas.
+
+    #lista de las esquinas que Pacman aún no ha visitado.
+    remaining_corners = [corners[i] for i in range(len(corners)) if not visited[i]]
+    if not remaining_corners:
+        return 0
+    
+    #distancia (Manhattan) hasta la esquina más cercana entre las que quedan por visitar.
+    to_nearest = min(manhattan_distance(position, corner) for corner in remaining_corners)
+    # Heurística final = distancia a la esquina más cercana + coste del MST para conectar las esquinas restantes entre sí.
+    return to_nearest + mst_cost(remaining_corners)
 
 class AStarCornersAgent(SearchAgent):
     """A SearchAgent for FoodSearchProblem using A* and your food_heuristic"""
@@ -532,7 +589,33 @@ def food_heuristic(state, problem):
     """
     position, food_grid = state
     "*** YOUR CODE HERE ***"
-    return 0
+
+    def cached_maze_distance(p1, p2,cache):
+        # busca en cache usando como KEY [p1, p2]
+        key = tuple(sorted([p1, p2]))
+        # si existe en cache un valor para esta KEY, retorna valor
+        if key in cache:
+            return cache[key]
+        # si no existe en cache, calcula distancia y guarda en cache el valor para esta KEY
+        distance = maze_distance(p1, p2, problem.starting_game_state)
+        cache[key] = distance
+        return distance
+
+    # LIST OF FOOD COORDINATES + CHECK IF NO FOOD
+    food = food_grid.as_list()
+    if not food:
+        return 0
+
+    #TUPPLE to SAVE MAZE DISTANCES, si existe la usa si no lo crea
+    cache = problem.heuristic_info.setdefault('maze_cache', {})
+
+    # FIND MAX DISTANCE FROM PACMAN TO ANY FOOD DOT
+    max_distance = 0
+    for f in food:
+        d = cached_maze_distance(position, f, cache)
+        if d > max_distance:
+            max_distance = d
+    return max_distance
 
 
 def simplified_corners_heuristic(state, problem):
@@ -581,13 +664,13 @@ class ClosestDotSearchAgent(SearchAgent):
         game_state.
         """
         # Here are some useful elements of the startState
-        start_position = game_state.get_pacman_position()
-        food = game_state.get_food()
-        walls = game_state.get_walls()
+        #start_position = game_state.get_pacman_position()
+        #food = game_state.get_food()
+        #walls = game_state.get_walls()
         problem = AnyFoodSearchProblem(game_state)
 
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        return search.bfs(problem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -624,7 +707,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        return self.food[x][y]
 
 def maze_distance(point1, point2, game_state):
     """
