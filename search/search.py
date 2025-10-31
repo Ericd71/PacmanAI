@@ -208,7 +208,7 @@ def uniform_cost_search(problem):
     start = problem.get_start_state()
     frontier = PriorityQueue()
     frontier.push((start, []), 0)
-    # Mejor coste conocido para cada estado
+    #Best known costs for each state
     best_g = {start: 0}
 
     while not (frontier.is_empty() if hasattr(frontier, "is_empty") else frontier.is_empty()):
@@ -218,7 +218,7 @@ def uniform_cost_search(problem):
         if problem.is_goal_state(state):
             return actions
 
-        # Si aparece un camino más caro que uno ya conocido, saltamos
+        #If there's a more costly path than one already known, we skip
         if best_g.get(state, float("inf")) < g:
             continue
 
@@ -255,7 +255,7 @@ def a_star_search(problem, heuristic=null_heuristic):
         if problem.is_goal_state(state):
             return actions
 
-        # Si ya tenemos un g mejor para este estado, saltamos
+        #If we already a greater g for said state, we skip
         if best_g.get(state, float("inf")) < g:
             continue
 

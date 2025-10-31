@@ -591,12 +591,12 @@ def food_heuristic(state, problem):
     "*** YOUR CODE HERE ***"
 
     def cached_maze_distance(p1, p2,cache):
-        # busca en cache usando como KEY [p1, p2]
+        #Look in the cache using it as KEY [p1,p2]
         key = tuple(sorted([p1, p2]))
-        # si existe en cache un valor para esta KEY, retorna valor
+        #If there's a value for that key, return that value
         if key in cache:
             return cache[key]
-        # si no existe en cache, calcula distancia y guarda en cache el valor para esta KEY
+        #If it doesn't exit in the cache, calculate distance and save the value in the cache for such KEY
         distance = maze_distance(p1, p2, problem.starting_game_state)
         cache[key] = distance
         return distance
@@ -606,7 +606,7 @@ def food_heuristic(state, problem):
     if not food:
         return 0
 
-    #TUPPLE to SAVE MAZE DISTANCES, si existe la usa si no lo crea
+    #TUPLE to SAVE MAZE DISTANCES, si existe la usa si no lo crea
     cache = problem.heuristic_info.setdefault('maze_cache', {})
 
     # FIND MAX DISTANCE FROM PACMAN TO ANY FOOD DOT
