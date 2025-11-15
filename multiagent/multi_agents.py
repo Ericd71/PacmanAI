@@ -20,7 +20,7 @@ from game import Agent
 
 class ReflexAgent(Agent):
     """
-    A reflex agent chooses an action at each choice point by examining
+    A reflex agent chooses an action at each choi ce point by examining
     its alternatives via a state evaluation function.
 
     The code below is provided as a guide.  You are welcome to change
@@ -74,7 +74,51 @@ class ReflexAgent(Agent):
         new_scared_times = [ghostState.scared_timer for ghostState in new_ghost_states]
         
         "*** YOUR CODE HERE ***"
-        return successor_game_state.get_score()
+         # If winning or losing, make that dominate
+        if successor_game_state.is_win():
+            return float("inf")
+        if successor_game_state.is_lose():
+            return -float("inf")
+
+        score = successor_game_state.get_score()
+
+        # Distance to the closest food
+        try:
+            food_list = new_food.as_list()
+        except AttributeError:
+            food_list = new_food.asList()
+
+        if food_list:
+            food_distances = [manhattan_distance(new_pos, food_pos) for food_pos in food_list]
+            min_food_dist = min(food_distances)
+            # Closer food is better (use reciprocal)
+            score += 2.0 / (min_food_dist + 1.0)
+            # Fewer food dots is better
+            score -= 4.0 * len(food_list)
+
+        # Ghost distances
+        ghost_positions = [g.get_position() for g in new_ghost_states]
+        if ghost_positions:
+            ghost_distances = [manhattan_distance(new_pos, g_pos) for g_pos in ghost_positions]
+
+            for dist, scared_time in zip(ghost_distances, new_scared_times):
+                if scared_time > 0:
+                    # Scared ghosts: getting closer is slightly good
+                    if dist > 0:
+                        score += 1.5 / (dist + 1.0)
+                else:
+                    # Normal ghosts: avoid being too close
+                    if dist <= 1:
+                        score -= 250.0
+                    else:
+                        score -= 1.0 / (dist + 1.0)
+
+        # Slight penalty for stopping
+        if action == Directions.STOP:
+            score -= 5.0
+
+        return score
+
 
 def score_evaluation_function(current_game_state):
     """
@@ -136,7 +180,49 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        num_agents = game_state.get_num_agents()
+
+        def minimax_value(state, agent_index, depth):
+            # Terminal state or depth limit
+            if depth == self.depth or state.is_win() or state.is_lose():
+                return self.evaluation_function(state)
+
+            legal_actions = state.get_legal_actions(agent_index)
+            if not legal_actions:
+                return self.evaluation_function(state)
+
+            # Compute next agent and depth
+            next_agent = (agent_index + 1) % num_agents
+            next_depth = depth + 1 if next_agent == 0 else depth
+
+            if agent_index == 0:
+                # Pacman (MAX)
+                value = -float("inf")
+                for action in legal_actions:
+                    successor = state.generate_successor(agent_index, action)
+                    value = max(value, minimax_value(successor, next_agent, next_depth))
+                return value
+            else:
+                # Ghosts (MIN)
+                value = float("inf")
+                for action in legal_actions:
+                    successor = state.generate_successor(agent_index, action)
+                    value = min(value, minimax_value(successor, next_agent, next_depth))
+                return value
+
+        # Root: choose the action that maximizes the minimax value
+        best_value = -float("inf")
+        best_action = Directions.STOP
+        legal_actions = game_state.get_legal_actions(0)
+
+        for action in legal_actions:
+            successor = game_state.generate_successor(0, action)
+            value = minimax_value(successor, 1 % num_agents, 0)
+            if value > best_value:
+                best_value = value
+                best_action = action
+
+        return best_action
     
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -149,7 +235,56 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluation_function
         """
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        num_agents = game_state.get_num_agents()
+
+        def alphabeta_value(state, agent_index, depth, alpha, beta):
+            # Terminal state or depth limit
+            if depth == self.depth or state.is_win() or state.is_lose():
+                return self.evaluation_function(state)
+
+            legal_actions = state.get_legal_actions(agent_index)
+            if not legal_actions:
+                return self.evaluation_function(state)
+
+            next_agent = (agent_index + 1) % num_agents
+            next_depth = depth + 1 if next_agent == 0 else depth
+
+            if agent_index == 0:
+                # Pacman (MAX)
+                value = -float("inf")
+                for action in legal_actions:
+                    successor = state.generate_successor(agent_index, action)
+                    value = max(value, alphabeta_value(successor, next_agent, next_depth, alpha, beta))
+                    if value > beta:  # prune (no equality pruning)
+                        return value
+                    alpha = max(alpha, value)
+                return value
+            else:
+                # Ghosts (MIN)
+                value = float("inf")
+                for action in legal_actions:
+                    successor = state.generate_successor(agent_index, action)
+                    value = min(value, alphabeta_value(successor, next_agent, next_depth, alpha, beta))
+                    if value < alpha:  # prune (no equality pruning)
+                        return value
+                    beta = min(beta, value)
+                return value
+
+        alpha = -float("inf")
+        beta = float("inf")
+        best_value = -float("inf")
+        best_action = Directions.STOP
+        legal_actions = game_state.get_legal_actions(0)
+
+        for action in legal_actions:
+            successor = game_state.generate_successor(0, action)
+            value = alphabeta_value(successor, 1 % num_agents, 0, alpha, beta)
+            if value > best_value:
+                best_value = value
+                best_action = action
+            alpha = max(alpha, best_value)
+
+        return best_action
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
