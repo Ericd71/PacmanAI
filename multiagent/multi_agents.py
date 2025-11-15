@@ -74,7 +74,7 @@ class ReflexAgent(Agent):
         new_scared_times = [ghostState.scared_timer for ghostState in new_ghost_states]
         
         "*** YOUR CODE HERE ***"
-         # If winning or losing, make that dominate
+        # If winning or losing, make that dominate
         if successor_game_state.is_win():
             return float("inf")
         if successor_game_state.is_lose():
@@ -103,13 +103,13 @@ class ReflexAgent(Agent):
 
             for dist, scared_time in zip(ghost_distances, new_scared_times):
                 if scared_time > 0:
-                    # Scared ghosts: getting closer is slightly good
+                    # Scared ghosts: getting closer is slightly good (chase for points but not too aggressively)
                     if dist > 0:
                         score += 1.5 / (dist + 1.0)
                 else:
-                    # Normal ghosts: avoid being too close
+                    # Normal ghosts: avoid being too close (if too close, penalize)
                     if dist <= 1:
-                        score -= 250.0
+                        score -= 250.0 # Large penalization when close
                     else:
                         score -= 1.0 / (dist + 1.0)
 
@@ -193,6 +193,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
             # Compute next agent and depth
             next_agent = (agent_index + 1) % num_agents
+            # Increase depth only when all agents have already moved
             next_depth = depth + 1 if next_agent == 0 else depth
 
             if agent_index == 0:
@@ -218,9 +219,10 @@ class MinimaxAgent(MultiAgentSearchAgent):
         for action in legal_actions:
             successor = game_state.generate_successor(0, action)
             value = minimax_value(successor, 1 % num_agents, 0)
+            # Tracking the best option
             if value > best_value:
                 best_value = value
-                best_action = action
+                best_action = action # Produce/Make the better move
 
         return best_action
     
@@ -255,9 +257,9 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 for action in legal_actions:
                     successor = state.generate_successor(agent_index, action)
                     value = max(value, alphabeta_value(successor, next_agent, next_depth, alpha, beta))
-                    if value > beta:  # prune (no equality pruning)
-                        return value
-                    alpha = max(alpha, value)
+                    if value > beta:  # Beta-pruning (no equality pruning)
+                        return value # Prune the remaining 
+                    alpha = max(alpha, value) # Update best option by taking the MAX
                 return value
             else:
                 # Ghosts (MIN)
@@ -265,13 +267,13 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 for action in legal_actions:
                     successor = state.generate_successor(agent_index, action)
                     value = min(value, alphabeta_value(successor, next_agent, next_depth, alpha, beta))
-                    if value < alpha:  # prune (no equality pruning)
-                        return value
-                    beta = min(beta, value)
+                    if value < alpha:  # Alpha-pruning (no equality pruning)
+                        return value # Prune the remaining
+                    beta = min(beta, value) # Update best option by taking the MIN
                 return value
 
-        alpha = -float("inf")
-        beta = float("inf")
+        alpha = -float("inf") # Best MAX score
+        beta = float("inf") # Best MIN score
         best_value = -float("inf")
         best_action = Directions.STOP
         legal_actions = game_state.get_legal_actions(0)
@@ -282,7 +284,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             if value > best_value:
                 best_value = value
                 best_action = action
-            alpha = max(alpha, best_value)
+            alpha = max(alpha, best_value) # Update alpha
 
         return best_action
 
