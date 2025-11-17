@@ -66,6 +66,21 @@ class ValueIterationAgent(ValueEstimationAgent):
           value iteration, V_k+1(...) depends on V_k(...)'s.
         """
         "*** YOUR CODE HERE ***"
+        for i in range(self.iterations):
+            new_values = self.values.copy() 
+            for state in self.mdp.get_states(): #Iterate over all states
+                if self.mdp.is_terminal(state): #If state terminal, value is 0
+                    new_values[state] = 0
+                else:
+                    action_values = [] #List that will store q-values for each action
+                    for action in self.mdp.get_possible_actions(state): #Iterate over all possible actions
+                        action_values.append(self.compute_q_value_from_values(state, action)) #Compute q-value for each previous action
+                    if action_values:
+                       #Update value of state to max q-value
+                        new_values[state] = max(action_values) 
+                    else:
+                        0 
+            self.values = new_values
             
     def get_value(self, state):
         """
@@ -79,6 +94,11 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
+        q_value = 0 #Starting at 0
+        for next_state, prob in self.mdp.get_transition_states_and_probs(state, action):
+            reward = self.mdp.get_reward(state, action, next_state)
+            q_value += prob * (reward + self.discount * self.values[next_state])
+        return q_value
         util.raise_not_defined()
 
     def compute_action_from_values(self, state):
@@ -91,6 +111,19 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
+        if self.mdp.is_terminal(state):
+            return None
+
+        best_action = None
+        #Initialize to a very low value
+        best_value = -10000000 
+        for action in self.mdp.get_possible_actions(state): #Iterate over all possible actions
+            q_value = self.compute_q_value_from_values(state, action) #Compute q-value for each action
+            #If q-value is greater than best value, update best value and best action
+            if q_value > best_value:
+                best_value = q_value
+                best_action = action
+        return best_action
         util.raise_not_defined()
 
     def get_policy(self, state):
